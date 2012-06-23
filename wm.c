@@ -4,16 +4,17 @@
 #include <stdlib.h> 
 #include <unistd.h>
 #include <string.h>
+#include <pthread.h>
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-Window root, win_xx, win_clock;
+Window root, win_xx, win_clock, win_mini;
 XWindowAttributes w;
 GC g;
 Display * dpy;
 XWindowAttributes attr;
 int simb_num;
-
+int next = 1;
 
 XColor color(char *color){
 	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
@@ -40,22 +41,6 @@ Pixmap c_p(Window w, int x, int y){
 	XDrawPoint(dpy, pixmap, gc, 15, 20);
 	return pixmap;
 }
-/*
-void get_up(Window wn, int n){
-	XGetWindowAttributes(dpy, wn, &attr);
-	XWindowChanges win;
-	//win.x = 1;
-	//win.y = 1;
-	//win.width = attr.width;
-	//win.height = attr.height;
-	//win.border_width = 10;
-	//win.sibling = None;
-	win.stack_mode = n;
-	XConfigureWindow(dpy, wn
-		, CWStackMode, &win);
-	XFlush(dpy);
-}*/
-
 Window* get_all_windows(){
 	Window w1, w2;
 	Window *w_arr;
@@ -76,7 +61,7 @@ Window find(char *name){
 			return w_arr[i];
 		}
 	}
-	return (int)NULL; 
+	return 0; 
 } 
 void set_borders(){
 	Window* w_arr = get_all_windows();
@@ -113,6 +98,7 @@ int main(void)
 	start.subwindow = None;
 	char pid[10];
 	sprintf(pid, "%d",getpid());
+	
 	if(!fork()){
 		execlp("xx", "xx", pid, NULL);
 		exit(0);
@@ -122,7 +108,10 @@ int main(void)
 		execlp("clock", "clock", NULL);
 		exit(0);
 	}
-	
+	if(!fork()){
+		execlp("mini", "mini", NULL);
+		exit(0);
+	}
 	if(!fork()){
 		execlp("xterm", "xterm", NULL);
 		exit(0);
@@ -130,23 +119,22 @@ int main(void)
 	sleep(2);
 	win_xx = find("xx");
 	win_clock = find("clock");
-	//if(win_xx != NULL) printf("aaa");
+	win_mini = find("mini");
+	if(win_mini != 0 && win_xx != 0 && win_clock != 0) printf("aaa");
 	XSetErrorHandler(handler);
 	set_borders();
+	sleep(1);
     for(;;){
 		XNextEvent(dpy, &ev);
           if(ev.type == MapNotify){
 			set_borders();
 		}else if(ev.type == ButtonPress && ev.xbutton.subwindow != None){
-			if(ev.xbutton.subwindow != win_xx && ev.xbutton.subwindow != win_clock){
-				//get_up(ev.xbutton.subwindow, Above);
+			printf("xxxx\n");
+			if(ev.xbutton.subwindow != win_xx && ev.xbutton.subwindow != win_clock ){
 				XRaiseWindow(dpy, ev.xbutton.subwindow);
-				//XCirculateSubwindowsUp(dpy, ev.xbutton.subwindow);
 			}
 			XGetWindowAttributes(dpy, ev.xbutton.subwindow, &attr);
-			if(ev.xbutton.button == 2  ){
-				//if(ev.xbutton.x_root > attr.x + attr.width - 50 && 
-					//ev.xbutton.x_root < attr.x + attr.width){
+			if(ev.xbutton.button == 2 && ev.xbutton.subwindow != win_mini){
 					XEvent ev2;
 		 
 					memset(&ev2, 0, sizeof (ev2));
@@ -156,13 +144,28 @@ int main(void)
 					ev2.xclient.message_type = XInternAtom(dpy
 						, "WM_PROTOCOLS", True);
 					ev2.xclient.format = 32;
-					ev2.xclient.data.l[0] = XInternAtom(dpy
+					char *name = '\0';
+					XFetchName(dpy, ev.xbutton.subwindow, &name);
+					printf("xxxx\n");
+					if(ev.xbutton.x_root > attr.x + attr.width /2  && 
+						ev.xbutton.x_root < attr.x + attr.width){
+
+						ev2.xclient.data.l[0] = XInternAtom(dpy
+							, "WM_DELETE_WINDOW", False);
+						ev2.xclient.data.l[1] = CurrentTime;
+						ev2.xclient.data.l[2] = (long int)ev.xbutton.subwindow;
+						XSendEvent(dpy, ev.xbutton.subwindow, False
+							, NoEventMask, &ev2);
+					}else if(ev.xbutton.x_root < attr.x + attr.width / 2  && 
+						ev.xbutton.x_root > attr.x && strcmp(name, "lon") != 0){
+
+						ev2.xclient.data.l[0] = XInternAtom(dpy
 						, "WM_DELETE_WINDOW", False);
-					ev2.xclient.data.l[1] = CurrentTime;
-					XSendEvent(dpy, ev.xbutton.subwindow, False
-						, NoEventMask, &ev2);
-					printf("aaa\n");
-				//}
+						ev2.xclient.data.l[1] = CurrentTime;
+						ev2.xclient.data.l[2] = (long int)ev.xbutton.subwindow;
+						XSendEvent(dpy, win_mini, False
+						 , NoEventMask, &ev2);
+					}
 			}
 			start = ev.xbutton;
 		}else if(ev.type == MotionNotify && start.subwindow != None){
@@ -174,16 +177,20 @@ int main(void)
 				int xdiff = 0;
 				if(strcmp(name, "lon") != 0) 
 					xdiff = ev.xbutton.x_root - start.x_root;
-				int ydiff = ev.xbutton.y_root - start.y_root;
+				int ydiff = 0;
+				if(ev.xbutton.subwindow != win_mini)
+					ydiff = ev.xbutton.y_root - start.y_root;
 
 			    	XMoveResizeWindow(dpy, start.subwindow,
 			    	attr.x + xdiff,
 			    	attr.y + ydiff,
 			    	attr.width,
 			    	attr.height);
+				
 			}
 			if(ev.xbutton.subwindow != win_xx && ev.xbutton.subwindow != win_clock
-				&& strcmp(name, "lon") != 0 && start.button == 3){
+				&& strcmp(name, "lon") != 0 && start.button == 3 
+				&& ev.xbutton.subwindow != win_mini){
 				int xdiff = ev.xbutton.x_root - start.x_root;
 			     int ydiff = ev.xbutton.y_root - start.y_root;
 
