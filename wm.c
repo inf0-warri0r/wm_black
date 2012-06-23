@@ -1,4 +1,3 @@
-
 #include <X11/Xlib.h>
 #include <stdio.h>
 #include <stdlib.h> 
@@ -47,7 +46,6 @@ Window* get_all_windows(){
 	unsigned int n;
 	XQueryTree(dpy, DefaultRootWindow(dpy), &w1, &w2, &w_arr, &n);
 	simb_num = n;
-	printf(" -----> %d\n", n);
 	return w_arr;
 }
 Window find(char *name){
@@ -63,13 +61,12 @@ Window find(char *name){
 	}
 	return 0; 
 } 
-void set_borders(){
+void set_borders(char *back, char *border){
 	Window* w_arr = get_all_windows();
 	int i = 0;
 	XSetWindowAttributes at;
-
-	at.background_pixel = color("black").pixel;
-	at.border_pixel = color("green").pixel;
+	at.background_pixel = color(back).pixel;
+	at.border_pixel = color(border).pixel;
 	
 	for(i = 0; i < simb_num; i++){
 		if( w_arr[i] != win_xx &&  w_arr[i] != win_clock){
@@ -78,27 +75,7 @@ void set_borders(){
 		}
 	}
 }
-int main(void)
-{
-	XButtonEvent start;
-	XEvent ev;
-
-	if(!(dpy = XOpenDisplay(0x0))) return 1;
-	XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureNotifyMask);
-	XGrabButton(dpy, 1, Mod1Mask, DefaultRootWindow(dpy), True,
-		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, GrabModeAsync, 
-		GrabModeAsync, None, None);
-	XGrabButton(dpy, 2, Mod1Mask, DefaultRootWindow(dpy), True,
-		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, GrabModeAsync, GrabModeAsync, 
-		None, None);
-	XGrabButton(dpy, 3, Mod1Mask, DefaultRootWindow(dpy), True,
-		ButtonPressMask|ButtonReleaseMask|PointerMotionMask, GrabModeAsync, GrabModeAsync, 
-		None, None);
-
-	start.subwindow = None;
-	char pid[10];
-	sprintf(pid, "%d",getpid());
-	
+void run_apps(char *pid){
 	if(!fork()){
 		execlp("xx", "xx", pid, NULL);
 		exit(0);
@@ -117,54 +94,70 @@ int main(void)
 		exit(0);
 	}
 	sleep(2);
+}
+void send_message(Window w_hide, Window w_des){
+	XEvent ev;
+		 
+	memset(&ev, 0, sizeof (ev));
+					 
+	ev.xclient.type = ClientMessage;
+	ev.xclient.window = ev.xbutton.subwindow;
+	ev.xclient.message_type = XInternAtom(dpy , "WM_PROTOCOLS", True);
+	ev.xclient.format = 32;
+	ev.xclient.data.l[0] = XInternAtom(dpy , "WM_DELETE_WINDOW", False);
+	ev.xclient.data.l[1] = CurrentTime;
+	ev.xclient.data.l[2] = (long int)w_hide;
+	XSendEvent(dpy, w_des, False, NoEventMask, &ev);
+}
+int main(void)
+{
+	XSetErrorHandler(handler);
+	if(!(dpy = XOpenDisplay(0x0))) return 1;
+	XSelectInput(dpy, DefaultRootWindow(dpy), SubstructureNotifyMask);
+	XGrabButton(dpy, 1, Mod1Mask, DefaultRootWindow(dpy), True,
+				ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+				GrabModeAsync, GrabModeAsync, None, None);
+	XGrabButton(dpy, 2, Mod1Mask, DefaultRootWindow(dpy), True,
+				ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+				GrabModeAsync, GrabModeAsync,  None, None);
+	XGrabButton(dpy, 3, Mod1Mask, DefaultRootWindow(dpy), True,
+				ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+				GrabModeAsync, GrabModeAsync,  None, None);
+
+	char pid[10];
+	sprintf(pid, "%d",getpid());
+	run_apps(pid);
+	
 	win_xx = find("xx");
 	win_clock = find("clock");
 	win_mini = find("mini");
+
 	if(win_mini != 0 && win_xx != 0 && win_clock != 0) printf("aaa");
-	XSetErrorHandler(handler);
-	set_borders();
+	set_borders("black", "green");
 	sleep(1);
-    for(;;){
+
+	XButtonEvent start;
+	XEvent ev;
+
+	start.subwindow = None;
+     while(1){
 		XNextEvent(dpy, &ev);
           if(ev.type == MapNotify){
-			set_borders();
+			set_borders("black", "green");
 		}else if(ev.type == ButtonPress && ev.xbutton.subwindow != None){
-			printf("xxxx\n");
 			if(ev.xbutton.subwindow != win_xx && ev.xbutton.subwindow != win_clock ){
 				XRaiseWindow(dpy, ev.xbutton.subwindow);
 			}
 			XGetWindowAttributes(dpy, ev.xbutton.subwindow, &attr);
 			if(ev.xbutton.button == 2 && ev.xbutton.subwindow != win_mini){
-					XEvent ev2;
-		 
-					memset(&ev2, 0, sizeof (ev2));
-					 
-					ev2.xclient.type = ClientMessage;
-					ev2.xclient.window = ev.xbutton.subwindow;
-					ev2.xclient.message_type = XInternAtom(dpy
-						, "WM_PROTOCOLS", True);
-					ev2.xclient.format = 32;
 					char *name = '\0';
 					XFetchName(dpy, ev.xbutton.subwindow, &name);
-					printf("xxxx\n");
 					if(ev.xbutton.x_root > attr.x + attr.width /2  && 
 						ev.xbutton.x_root < attr.x + attr.width){
-
-						ev2.xclient.data.l[0] = XInternAtom(dpy
-							, "WM_DELETE_WINDOW", False);
-						ev2.xclient.data.l[1] = CurrentTime;
-						ev2.xclient.data.l[2] = (long int)ev.xbutton.subwindow;
-						XSendEvent(dpy, ev.xbutton.subwindow, False
-							, NoEventMask, &ev2);
+						send_message(ev.xbutton.subwindow, ev.xbutton.subwindow);
 					}else if(ev.xbutton.x_root < attr.x + attr.width / 2  && 
 						ev.xbutton.x_root > attr.x && strcmp(name, "lon") != 0){
-
-						ev2.xclient.data.l[0] = XInternAtom(dpy
-						, "WM_DELETE_WINDOW", False);
-						ev2.xclient.data.l[1] = CurrentTime;
-						ev2.xclient.data.l[2] = (long int)ev.xbutton.subwindow;
-						XSendEvent(dpy, win_mini, False
-						 , NoEventMask, &ev2);
+						send_message(ev.xbutton.subwindow, win_mini); 
 					}
 			}
 			start = ev.xbutton;
@@ -181,12 +174,7 @@ int main(void)
 				if(ev.xbutton.subwindow != win_mini)
 					ydiff = ev.xbutton.y_root - start.y_root;
 
-			    	XMoveResizeWindow(dpy, start.subwindow,
-			    	attr.x + xdiff,
-			    	attr.y + ydiff,
-			    	attr.width,
-			    	attr.height);
-				
+			    	XMoveWindow(dpy, start.subwindow, attr.x + xdiff, attr.y + ydiff);
 			}
 			if(ev.xbutton.subwindow != win_xx && ev.xbutton.subwindow != win_clock
 				&& strcmp(name, "lon") != 0 && start.button == 3 
@@ -194,11 +182,9 @@ int main(void)
 				int xdiff = ev.xbutton.x_root - start.x_root;
 			     int ydiff = ev.xbutton.y_root - start.y_root;
 
-			    	XMoveResizeWindow(dpy, start.subwindow,
-			    	attr.x,
-			    	attr.y,
-			    	MAX(1, attr.width + xdiff),
-			    	MAX(1, attr.height + ydiff));
+			    	XResizeWindow(dpy, start.subwindow, 
+							MAX(1, attr.width + xdiff),
+			    				MAX(1, attr.height + ydiff));
 			}
 		}else if(ev.type == ButtonRelease) start.subwindow = None;
 	}
