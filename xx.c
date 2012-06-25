@@ -5,21 +5,32 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
- 
-XWindowAttributes attr;
-Display *dpy;
-Window win;
-GC gc;
-int scr;
-Atom WM_DELETE_WINDOW;
-XEvent ev;
-XEvent ev2;
-KeySym keysym;
-int loop;
+
+#include "config_read.c"
+
+#define INDEX(a, b, c) ((a - b / c))
+
+//Display *dpy;
+//Window win;
+//GC gc;
+//int scr;
+//Atom WM_DELETE_WINDOW;
+//int loop;
 
 char * home;
 
-Pixmap load_bitmap(char *name){
+typedef struct pixmap_{
+	int width;
+	int height;
+	Pixmap px;
+} pixmap_;
+
+int handler(Display *d, XErrorEvent *ev){
+	printf("error\n");
+	int i = 5;
+	return i;
+}
+pixmap_ *load_bitmap(Display *dpy, char *name){
 	Pixmap bitmap;
 	unsigned int bitmap_width, bitmap_height;
 	int hotspot_x, hotspot_y;
@@ -32,11 +43,15 @@ Pixmap load_bitmap(char *name){
 		                 &bitmap,
 		                 &hotspot_x, &hotspot_y);
 	if(rc == BitmapSuccess){
-		return bitmap;
+		pixmap_ *pm = (pixmap_ *)malloc(sizeof(pixmap_));
+		pm -> width = bitmap_width;
+		pm -> height = bitmap_height;
+		pm -> px = bitmap;	
+		return pm;
 	}
 	return NULL;
 }
-XColor color(char *color){
+XColor color(Display *dpy, char *color){
 	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
 	Colormap screen_colormap = XCreateColormap(dpy,
                                        DefaultRootWindow(dpy),
@@ -47,114 +62,111 @@ XColor color(char *color){
 	XColor exact_color;
 
 	Status rc = XAllocNamedColor(dpy,
-									screen_colormap,
-									color,
-									&system_color,
-									&exact_color);
+							screen_colormap,
+							color,
+							&system_color,
+							&exact_color);
 
-	if (rc == 0) {
-		fprintf(stderr,
-				"XAllocNamedColor - allocation of 'red' color failed.\n");
-	}
 	return system_color;
-	//XSetForeground(display, my_gc, screen_color_1.pixel);
+}
+void draw_text(Display *dpy, GC gc, Window win, int width, int height, 				XFontStruct *font){		
+	int xx = width/8;
+	int i;
+	if(read_file("apps_head")){
+		XTextItem item;
+		item.delta = 10;
+		item.font = font -> fid; 
+		app *p = list;
+		for(i = 0; i < 4 && p != NULL; i++){
+			item.chars = p -> name;
+			item.nchars = strlen(p -> name);
+			XDrawText(dpy, win, gc, (2*i + 1) * xx - 25,  90, &item, 1);
+			p = p -> next;
+		}
+		item.chars = "Log out";
+		item.nchars = strlen("Log out");
+		XDrawText(dpy, win, gc, 2 * width/4 + 20,  
+					height - 50, &item, 1);
+	}
+}
+void draw_lines(Display *dpy, GC gc, Window win, int width, int height){
+	XDrawLine(dpy, win, gc, 0, 100, width, 100);
+	XDrawLine(dpy, win, gc, 0, height - 100, width,  height - 100);
+	int i;
+	for(i = 1; i < 4; i++){
+		XDrawLine(dpy, win, gc, i * width/4, 0, i * width/4, 100);
+	}
+}
+void draw_icons(Display *dpy, GC gc, Window win, int width, pixmap_ *pm){
+	int h = pm -> height;
+	int w = pm -> width;
+	Pixmap px = pm -> px;
+	int xx = width/8;
+	if(pm != NULL){
+		int i;
+		for(i = 0; i < 4; i++)
+			XCopyPlane(dpy, px, win, gc, 0, 0, w, h,
+					(2 * i + 1) * xx - w/2, 50 - h/2, 1);
+	}
 }
 int main(int argc, char *argv[])
 {
+	XSetErrorHandler(handler);
+	XWindowAttributes attr;
+	
 	home = getenv("HOME");
 	int pid = atoi(argv[1]);
-	dpy = XOpenDisplay(NULL);
+	Display *dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
 		fputs("Cannot open display", stderr);
 		exit(1);
 	}
-	scr = XDefaultScreen(dpy);
+	int scr = XDefaultScreen(dpy);
 	int display_width = DisplayWidth(dpy, scr);
 	int display_height = DisplayHeight(dpy, scr);
-	XColor col = color("green");
-	printf("%d\n", display_height);
-	win = XCreateSimpleWindow(dpy,
+	XColor col = color(dpy, "green");
+	Window win = XCreateSimpleWindow(dpy,
 		XRootWindow(dpy, scr),
-		0, 0, display_width, display_height, 2, /*XWhitePixel(dpy, scr),*/
+		0, 0, display_width + 10, display_height + 10, 2,
 		XBlackPixel(dpy, scr), XBlackPixel(dpy, scr));
-	XFlush(dpy);
+
 	XGetWindowAttributes(dpy, win, &attr);
-	printf("%d\n", attr.x);
 	XStoreName(dpy, win, "xx");
  
 	XSelectInput(dpy, win, ExposureMask | KeyPressMask | ButtonPressMask | SubstructureNotifyMask);
 
-	
-	XFlush(dpy);
-
-	gc = XDefaultGC(dpy, scr);
-	WM_DELETE_WINDOW = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+	GC gc = XDefaultGC(dpy, scr);
+	Atom WM_DELETE_WINDOW = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &WM_DELETE_WINDOW, 1);
  
-	col = color("green");
+	col = color(dpy, "green");
 	XSetForeground(dpy, gc, col.pixel);
 
-	XColor col2 = color("black");
+	XColor col2 = color(dpy, "black");
 	XSetBackground(dpy, gc, col2.pixel);
 	int co;
 	char **fn = XListFonts(dpy, 
 		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 1, &co);
 	
 	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
-	printf("aaaaaaa %d\n", co);
+
 	XTextItem item;
 	item.delta = 10;
 	item.font = font -> fid; 
 	XMapWindow(dpy, win);
-	loop = 1;
+	XEvent ev;
+	int loop = 1;
 	while (loop) {
 		XNextEvent(dpy, &ev);
-		printf("aaccccc %d \n", ev.type);
-		//XFillRectangle(dpy, win, gc, 0, 0, 150, 100);
-		XGetWindowAttributes(dpy, win, &attr);
 		switch (ev.type)
 		{
 			case Expose:
 			{
-				char msg1[] = "nautilus";
-				char msg2[] = "editer";
-				char msg3[] = "ternimal";
-				char msg4[] = "launcher";
-				char msg5[] = "log out";
-				
-				item.chars = msg1;
-				item.nchars = strlen(msg1);
-				XDrawText(dpy, win, gc, 0 * attr.width/4 + 20,  80, &item, 1);
-				item.chars = msg2;
-				item.nchars = strlen(msg2);
-				XDrawText(dpy, win, gc, 1 * attr.width/4 + 20,  80, &item, 1);
-				item.chars = msg3;
-				item.nchars = strlen(msg3);
-				XDrawText(dpy, win, gc, 2 * attr.width/4 + 20,  80, &item, 1);
-				item.chars = msg4;
-				item.nchars = strlen(msg4);
-				XDrawText(dpy, win, gc, 3 * attr.width/4 + 20,  80, &item, 1);
-				item.chars = msg5;
-				item.nchars = strlen(msg5);
-				XDrawText(dpy, win, gc, 2 * attr.width/4 + 20,  
-							attr.height - 50, &item, 1);
-
-				XDrawLine(dpy, win, gc, 0, 100, attr.width, 100);
-				XDrawLine(dpy, win, gc, 0,  attr.height - 100, attr.width,  attr.height - 100);
-				XDrawLine(dpy, win, gc, attr.width/4,   0, attr.width/4, 100);
-				XDrawLine(dpy, win, gc, attr.width/2,   0, attr.width/2, 100);
-				XDrawLine(dpy, win, gc, 3 * attr.width/4,  0, 3 * attr.width/4, 100);
-				Pixmap bitmap = load_bitmap("flagdown.bmp");
-				if(bitmap != NULL){
-					XCopyPlane(dpy, bitmap, win, gc, 0, 0, 150, 50,
-								 0 * attr.width/4 + 20, 20, 1);
-					XCopyPlane(dpy, bitmap, win, gc, 0, 0, 150, 50,
-								 1 * attr.width/4 + 20, 20, 1);
-					XCopyPlane(dpy, bitmap, win, gc, 0, 0, 150, 50,
-								 2 * attr.width/4 + 20, 20, 1);
-					XCopyPlane(dpy, bitmap, win, gc, 0, 0, 150, 50,
-								 3 * attr.width/4 + 20, 20, 1);
-				}
+				XGetWindowAttributes(dpy, win, &attr);
+				draw_text(dpy, gc, win, attr.width, attr.height, font);
+				draw_lines(dpy, gc, win, attr.width, attr.height);
+				draw_icons(dpy, gc, win, attr.width, 
+						load_bitmap(dpy, "flagdown.bmp"));
 			}
 			break;
  
@@ -165,30 +177,15 @@ int main(int argc, char *argv[])
 					kill(pid, SIGKILL);
 					loop = 0;
 				}else if(ev.xbutton.y_root - attr.y < 100){
-					if(ev.xbutton.x_root - attr.x < attr.width / 4){
-						if(!fork()){
-							execlp("nautilus", "nautilus", NULL);	
-						}
-					}else if(ev.xbutton.x_root - attr.x < attr.width / 2){
-						if(!fork()){
-							execlp("gedit", "gedit", NULL);	
-						}		
-					}else if(ev.xbutton.x_root - attr.x < 3*attr.width / 4){
-						if(!fork()){
-							execlp("gnome-terminal", "gnome-terminal", NULL);	
-						}		
-					}else if(ev.xbutton.x_root - attr.x > 3*attr.width / 4){
-						if(!fork()){
-							execlp("lon", "lon", NULL);	
-						}		
-					}
+					XGetWindowAttributes(dpy, win, &attr);
+					int index = (ev.xbutton.x_root-attr.x)/
+								(attr.width/4);		
+					//int index = INDEX(ev.xbutton.x_root, attr.x,attr.width / 4);
+					//printf("%d \n", index);
+					run(get_command(index));		
 				}
 			}
 			break;
- 
-			case ClientMessage:
-				if (ev.xclient.data.l[0] == WM_DELETE_WINDOW)
-				break;
 		}
 	}
 	XDestroyWindow(dpy, win);

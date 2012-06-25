@@ -1,22 +1,16 @@
-
 #include <X11/Xlib.h>
 #include <stdio.h>
 #include <stdlib.h> 
 #include <unistd.h>
 #include <string.h>
-#include <pthread.h>
 
-Window win;
-XWindowAttributes w;
-GC g;
-Display * dpy;
-Atom hide;
 int count = 0;
 
 typedef struct window{
 	Window w;
 	struct window *next;
 } window;
+
 window *list = NULL;
 window *st = NULL;
 
@@ -50,7 +44,7 @@ int add(Window w){
 Window get_window(int n){
 	window *p = st;
 	int i;
-	if(count == 0) return NULL;
+	if(count == 0) return 0;
 	if(count == 1){
 		Window w = st -> w;
 		st = list = NULL;
@@ -64,7 +58,7 @@ Window get_window(int n){
 	if(p -> next  == NULL) list = p; 
 	return w;
 }
-XColor color(char *color){
+XColor color(Display *dpy, char *color){
 	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
 	Colormap screen_colormap = XCreateColormap(dpy, DefaultRootWindow(dpy),
                                    default_visual,  AllocNone);
@@ -75,14 +69,17 @@ XColor color(char *color){
 	if (rc == 0) fprintf(stderr, "XAllocNamedColor - allocation of 'red' color failed.\n");
 	return system_color;
 }
-void repaint(Window win, XFontStruct *font, GC gc){
+void repaint(Display *dpy, Window win, XFontStruct *font, GC gc){
 
-	if(count <= 1)XClearArea(dpy, win, 0, 0, 200, 50, False);	
-	else XClearArea(dpy, win, 0, 0, (count - 1)*200, 50, False);
+	if(count <= 1){
+		XClearArea(dpy, win, 0, 0, 200, 50, False);
+		XResizeWindow(dpy, win, 200, 50);
+	}else{
+		XClearArea(dpy, win, 0, 0, (count - 1)*200, 50, False);
+		XResizeWindow(dpy, win, count*200, 50);
+	}
+
 	window *p = st;
-	if(count <= 1) XResizeWindow(dpy, win, 200, 50);
-	else XResizeWindow(dpy, win, count*200, 50);
-
 	int j = 0;
 	while(p != NULL){
 		Window w = p -> w;
@@ -91,7 +88,6 @@ void repaint(Window win, XFontStruct *font, GC gc){
 		XFetchName(dpy, w, &name); 
 		if(name == NULL) name = "untitled";
 		if(strlen(name) > 20) name[20] = '\0';
-		printf("%s\n", name);
 		XDrawLine(dpy, win, gc, 200*j, 0, 200*j, 50);
 
 		XTextItem item;
@@ -99,13 +95,15 @@ void repaint(Window win, XFontStruct *font, GC gc){
 		item.font = font -> fid; 
 		item.chars = name;
 		item.nchars = strlen(name);
+
 		XDrawText(dpy, win, gc, 200*j + 20,  20, &item, 1);
+
 		p = p -> next;
 		j++;
 	}
 }
 int main(){
-	dpy = XOpenDisplay(NULL);
+	Display *dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
 		fputs("Cannot open display", stderr);
 		exit(1);
@@ -114,7 +112,7 @@ int main(){
 	int scr = XDefaultScreen(dpy);
 	int display_width = DisplayWidth(dpy, scr);
 	int display_height = DisplayHeight(dpy, scr);
-	XColor col = color("green");
+	XColor col = color(dpy, "green");
 
 	Window win = XCreateSimpleWindow(dpy,
 		XRootWindow(dpy, scr),
@@ -123,22 +121,25 @@ int main(){
 	XStoreName(dpy, win, "mini");
 	XSelectInput(dpy, win, ExposureMask | KeyPressMask | ButtonPressMask | 					SubstructureNotifyMask);
 	
-	hide = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
+	Atom hide = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &hide, 1);
 	XMapWindow(dpy, win);
 	GC gc = XDefaultGC(dpy, scr);
 	XSetForeground(dpy, gc, col.pixel);
 	int co;
-	char **fn = XListFonts(dpy, "-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 1,
-						&co);
+	char **fn = XListFonts(dpy, 
+		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 1,
+		&co);
 	
 	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
-	char *msg1 = "-----";
+	char *msg1 = "";
+
 	XTextItem item;
 	item.delta = 10;
 	item.font = font -> fid; 
 	item.chars = msg1;
 	item.nchars = strlen(msg1);
+
 	XDrawText(dpy, win, gc, 20,  20, &item, 1);
 	XSetErrorHandler(handler);
 	while (1){
@@ -147,15 +148,15 @@ int main(){
 		{
 			case Expose:
 			{
-				if(count > 0) repaint(win, font, gc);
+				if(count > 0) repaint(dpy, win, font, gc);
 			}
 			break;
 			case ClientMessage:
 			if (ev.xclient.data.l[0] == hide){
-				if(ev.xclient.data.l[2] != NULL && ev.xclient.data.l[2] != 0){
+				if(ev.xclient.data.l[2] != 0){
 					Window n = (Window)ev.xclient.data.l[2];
 					if(add(n)){
-						repaint(win, font, gc);
+						repaint(dpy, win, font, gc);
 						XMoveWindow(dpy, n, 1500, 100);
 						XRaiseWindow(dpy, n);
 					}	
@@ -172,8 +173,9 @@ int main(){
 					if(index < count && index > -1){
 						Window w = get_window(index);
 						XMoveWindow(dpy, w, 100, 100);
+						XRaiseWindow(dpy, w);
 						count--;
-						repaint(win, font, gc);
+						repaint(dpy, win, font, gc);
 					}
 				}
 			}

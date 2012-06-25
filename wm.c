@@ -69,7 +69,7 @@ void set_borders(char *back, char *border){
 	at.border_pixel = color(border).pixel;
 	
 	for(i = 0; i < simb_num; i++){
-		if( w_arr[i] != win_xx &&  w_arr[i] != win_clock){
+		if( w_arr[i] != win_xx){
 			XSetWindowBorderWidth(dpy, w_arr[i], 3);
 			XChangeWindowAttributes(dpy, w_arr[i], CWBorderPixel, &at);
 		}
@@ -106,7 +106,8 @@ void send_message(Window w_hide, Window w_des){
 	ev.xclient.format = 32;
 	ev.xclient.data.l[0] = XInternAtom(dpy , "WM_DELETE_WINDOW", False);
 	ev.xclient.data.l[1] = CurrentTime;
-	ev.xclient.data.l[2] = (long int)w_hide;
+	if(w_hide != w_des)
+		ev.xclient.data.l[2] = (long int)w_hide;
 	XSendEvent(dpy, w_des, False, NoEventMask, &ev);
 }
 int main(void)
