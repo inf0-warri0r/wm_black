@@ -6,29 +6,13 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include "grapics.c"
 #include "config_read.c"
 	
 int handler(Display *d, XErrorEvent *ev){
 	printf("error\n");
 	int i = 5;
 	return i;
-}
-XColor color(Display *dpy, char *color){
-	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
-	Colormap screen_colormap = XCreateColormap(dpy,
-                                       DefaultRootWindow(dpy),
-                                       default_visual,
-                                       AllocNone);
-	XColor system_color;
- 
-	XColor exact_color;
-
-	Status rc = XAllocNamedColor(dpy,
-							screen_colormap,
-							color,
-							&system_color,
-							&exact_color);
-	return system_color;
 }
 void drew_grid(Display *dpy, Window win, GC gc, int x, int y, int width, int N){
 	int i, j;

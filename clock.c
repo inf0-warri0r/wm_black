@@ -6,21 +6,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-XColor color(Display *dpy, char *color){
-	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
-	Colormap screen_colormap = XCreateColormap(dpy,
-                                       			DefaultRootWindow(dpy),
-                                       			default_visual,
-                                      			AllocNone);
-	XColor system_color;
-	XColor exact_color;
-	Status rc = XAllocNamedColor(dpy,
-							screen_colormap,
-							color,
-							&system_color,
-							&exact_color);
-	return system_color;
-}
+#include "grapics.c"
+
 int main(int argc, char *argv[])
 {
 	Display *dpy;
@@ -43,8 +30,8 @@ int main(int argc, char *argv[])
 
 	int co;
 	char **fn = XListFonts(dpy, 
-		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*"
-		, 1, &co);
+		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 
+		1, &co);
 	if(co == 0) fn = XListFonts(dpy, "*", 1, &co);
 
 	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);

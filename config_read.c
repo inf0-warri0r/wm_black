@@ -59,6 +59,7 @@ int read_file(char *file){
 		list = tmp;
 		i++;
 	}
+	fclose(f);
 	return i;
 }
 void run(char *com){

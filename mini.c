@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <string.h>
 
+
+#include "grapics.c"
+
 int count = 0;
 
 typedef struct window{
@@ -16,7 +19,7 @@ window *st = NULL;
 
 int handler(Display *d, XErrorEvent *ev){
 	int i = 5;
-	//printf("Error\n");
+	printf("Error\n");
 	return i;
 }
 int check(Window w){
@@ -57,17 +60,6 @@ Window get_window(int n){
 	p -> next = p -> next -> next;
 	if(p -> next  == NULL) list = p; 
 	return w;
-}
-XColor color(Display *dpy, char *color){
-	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
-	Colormap screen_colormap = XCreateColormap(dpy, DefaultRootWindow(dpy),
-                                   default_visual,  AllocNone);
-	XColor system_color;
-	XColor exact_color;
-	Status rc = XAllocNamedColor(dpy, screen_colormap, color, &system_color,
-							&exact_color);
-	if (rc == 0) fprintf(stderr, "XAllocNamedColor - allocation of 'red' color failed.\n");
-	return system_color;
 }
 void repaint(Display *dpy, Window win, XFontStruct *font, GC gc){
 

@@ -6,68 +6,17 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include "grapics.c"
 #include "config_read.c"
 
 #define INDEX(a, b, c) ((a - b / c))
 
-//Display *dpy;
-//Window win;
-//GC gc;
-//int scr;
-//Atom WM_DELETE_WINDOW;
-//int loop;
-
 char * home;
-
-typedef struct pixmap_{
-	int width;
-	int height;
-	Pixmap px;
-} pixmap_;
 
 int handler(Display *d, XErrorEvent *ev){
 	printf("error\n");
 	int i = 5;
 	return i;
-}
-pixmap_ *load_bitmap(Display *dpy, char *name){
-	Pixmap bitmap;
-	unsigned int bitmap_width, bitmap_height;
-	int hotspot_x, hotspot_y;
-	Window root_win = DefaultRootWindow(dpy); 
-	char *path = (char*)malloc(strlen(home) + strlen(name) + 2);   
-	strcpy(path, home);
-	strcat(path, "/");
-	strcat(path, name);                                               
-	int rc = XReadBitmapFile(dpy, root_win, path, &bitmap_width, &bitmap_height,
-		                 &bitmap,
-		                 &hotspot_x, &hotspot_y);
-	if(rc == BitmapSuccess){
-		pixmap_ *pm = (pixmap_ *)malloc(sizeof(pixmap_));
-		pm -> width = bitmap_width;
-		pm -> height = bitmap_height;
-		pm -> px = bitmap;	
-		return pm;
-	}
-	return NULL;
-}
-XColor color(Display *dpy, char *color){
-	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
-	Colormap screen_colormap = XCreateColormap(dpy,
-                                       DefaultRootWindow(dpy),
-                                       default_visual,
-                                       AllocNone);
-	XColor system_color;
- 
-	XColor exact_color;
-
-	Status rc = XAllocNamedColor(dpy,
-							screen_colormap,
-							color,
-							&system_color,
-							&exact_color);
-
-	return system_color;
 }
 void draw_text(Display *dpy, GC gc, Window win, int width, int height, 				XFontStruct *font){		
 	int xx = width/8;
@@ -114,7 +63,6 @@ int main(int argc, char *argv[])
 	XSetErrorHandler(handler);
 	XWindowAttributes attr;
 	
-	home = getenv("HOME");
 	int pid = atoi(argv[1]);
 	Display *dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
