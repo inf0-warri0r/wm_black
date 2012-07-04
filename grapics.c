@@ -1,17 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <string.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 
-
-typedef struct pixmap_{
-	int width;
-	int height;
-	Pixmap px;
-} pixmap_;
+#include "grapics.h"
 
 XColor color(Display *dpy, char *color){
 	Visual* default_visual = DefaultVisual(dpy, DefaultScreen(dpy));
@@ -47,4 +35,13 @@ pixmap_ *load_bitmap(Display *dpy, char *name){
 		return pm;
 	}
 	return NULL;
+}
+XFontStruct *get_font(Display *dpy){
+	int co;
+	char **fn = XListFonts(dpy, 
+		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 
+		1, &co);
+	if(co == 0) fn = XListFonts(dpy, "*", 1, &co);
+	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
+	return font;
 }

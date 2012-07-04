@@ -6,40 +6,11 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include "sha.c"
-#include "grapics.c"
-#include "config_read.c"
+#include "share.h"
+#include "grapics.h"
+#include "config_read.h"
+#include "launcher.h"
 	
-void drew_grid(Display *dpy, Window win, GC gc, int x, int y, int width, int N){
-	int i, j;
-	for(i = 0; i < y; i++){
-		XDrawLine(dpy, win, gc, 0, 70*(i + 1) , width, 70*(i + 1));
-	}
-	int n = 0;
-	app *p = list;
-	for(j = 0; j < y; j++){
-		for(i = 0; i < x; i++){
-			if(n >= N) break;
-			XDrawString(dpy, win, gc,
-				120 * i + 10,  70 * j + 35,
-				p -> name, strlen(p -> name));
-			XFlush(dpy);
-			XDrawLine(dpy, win, gc, 
-					120 * (i + 1), 70 * j,
-					120 * (i + 1), 70 * (j + 1));	
-			XFlush(dpy);
-			n++;
-			p = p -> next;
-		}
-		if(n >= N) break;
-	}
-	XFlush(dpy);
-}
-int get_index(int x1, int y1, int x2, int y2, int width){
-	int x =  (x1 - x2) / 120;
-	int y =  (y1 - y2) /  70;
-	return (y * width + x);
-}
 int main(int argc, char *argv[])
 {
 	XWindowAttributes attr;
@@ -52,10 +23,8 @@ int main(int argc, char *argv[])
 	if(count > y * x) y++;
 	
 	Display *dpy = XOpenDisplay(NULL);
-	if (dpy == NULL) {
-		fputs("Cannot open display", stderr);
-		exit(1);
-	}
+	if(!(dpy = XOpenDisplay(0x0))) return 1;
+
 	int scr = XDefaultScreen(dpy);
 	GC gc = XDefaultGC(dpy, scr);
 	int width  = 120*x;
@@ -64,9 +33,12 @@ int main(int argc, char *argv[])
 	XColor col2 = color(dpy, "black");
 
 	Window win = XCreateSimpleWindow(dpy,
-		XRootWindow(dpy, scr),
-		DisplayWidth(dpy, scr)/2 -60*x, 200, 120*x, 70*y, 3,
-		col.pixel, XBlackPixel(dpy, scr));
+				XRootWindow(dpy, scr),
+				DisplayWidth(dpy, scr)/2 -60*x, 200, 
+				120*x, 70*y, 
+				3,
+				col.pixel, XBlackPixel(dpy, scr));
+
 	XStoreName(dpy, win, "lon");	
 	
 	XMapWindow(dpy, win);
@@ -76,18 +48,12 @@ int main(int argc, char *argv[])
  
 	XSetForeground(dpy, gc, col.pixel);
 	
-	int co;
-	char **fn = XListFonts(dpy, 
-		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*",
-		1, &co);
+	XFontStruct *font = get_font(dpy);
 
-	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
     	XSelectInput(dpy,
 		win, 
-		ExposureMask | KeyPressMask | ButtonPressMask 
-		|SubstructureNotifyMask);
+		ExposureMask | KeyPressMask | ButtonPressMask |SubstructureNotifyMask);
 
-	
 	XSetErrorHandler(handler);
 	XGetWindowAttributes(dpy, win, &attr);
 	drew_grid(dpy, win, gc, x, y, attr.width, count);

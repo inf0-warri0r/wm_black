@@ -1,4 +1,31 @@
-wm_black
-==========
+wm_black - simple window manager for linux
+============================================
 
-a simple linux window manager
+wm_black is a simple window manager for linux created using Xlib libraries. it allows moving windows, resizing windows minimizing windows and closing windows. it also contains an application launcher and a clock app.
+
+
+installing
+-----------
+
+  
+usage
+------
+
+use Alt + left click to select and move a window.
+use Alt + right click and drag to resize window.
+use Alt + middle button to minimizing or close window.(click on right half of the window to close window. click on the left helf of the window to minimize.)
+
+minimized window titles will be shown on the desktop. click on them to maximize them.
+
+
+adding apps to launcher and the desktop
+----------------------------------------
+
+add app names and commands to the "app" file to add them to the launcher.
+and four app names and commands to the "app_head" file to add them to desktop.
+ 
+more inf0:
+-----------
+
+	tcg.galahena@gmail.com
+	http://www.inf0warri0r.blogspot.com

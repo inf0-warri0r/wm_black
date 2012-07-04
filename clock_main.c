@@ -6,21 +6,26 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include "grapics.c"
+#include "share.h"
+#include "grapics.h"
 
 int main(int argc, char *argv[])
 {
 	Display *dpy;
 	if(!(dpy = XOpenDisplay(0x0))) return 1;
+
 	int scr = XDefaultScreen(dpy);
 	int display_width = DisplayWidth(dpy, scr);
 	GC gc = XDefaultGC(dpy, scr);
 
 	XColor col = color(dpy, "green");
 	Window win = XCreateSimpleWindow(dpy,
-		XRootWindow(dpy, scr),
-		display_width - 320 , 150, 300, 100, 3,
-		col.pixel, XBlackPixel(dpy, scr));
+				XRootWindow(dpy, scr),
+				display_width - 320 , 150, 
+				300, 100, 
+				3,
+				col.pixel, XBlackPixel(dpy, scr));
+
 	XStoreName(dpy, win, "clock");
 	XSetForeground(dpy, gc, col.pixel);
 	XMapWindow(dpy, win);
@@ -28,13 +33,8 @@ int main(int argc, char *argv[])
 	Atom delete_message = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 	XSetWMProtocols(dpy, win, &delete_message, 1);
 
-	int co;
-	char **fn = XListFonts(dpy, 
-		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*", 
-		1, &co);
-	if(co == 0) fn = XListFonts(dpy, "*", 1, &co);
-
-	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
+	XFontStruct *font = get_font(dpy);
+	
 	XTextItem item;
 	item.delta = 10;
 	item.font = font -> fid;

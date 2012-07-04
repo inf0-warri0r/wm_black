@@ -5,83 +5,12 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "sha.c"
-#include "grapics.c"
+#include "share.h"
+#include "grapics.h"
+#include "wm_black.h"
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+int main(int argc, char *argv[]){
 
-int simb_num;
-int next = 1;
-
-Window* get_all_windows(Display *dpy){
-	Window w1, w2;
-	Window *w_arr;
-	unsigned int n;
-	XQueryTree(dpy, DefaultRootWindow(dpy), &w1, &w2, &w_arr, &n);
-	simb_num = n;
-	return w_arr;
-}
-Window find(Display *dpy, char *name){
-	int i;
-	Window* w_arr = get_all_windows(dpy);
-	for(i = 0; i < simb_num; i++){
-		char *na = '\0';
-		XFetchName(dpy, w_arr[i], &na);
-		if(na != NULL && strcmp(name, na) == 0){
-			return w_arr[i];
-		}
-	}
-	return 0; 
-} 
-
-void run_apps(char *pid){
-	if(!fork()){
-		execlp("xx", "xx", pid, NULL);
-		exit(0);
-	}
-	sleep(1);
-	if(!fork()){
-		execlp("clock", "clock", NULL);
-		exit(0);
-	}
-	if(!fork()){
-		execlp("mini", "mini", NULL);
-		exit(0);
-	}
-	sleep(2);
-}
-void set_borders(Display *dpy, Window skip, char *back, char *border){
-	Window* w_arr = get_all_windows(dpy);
-	int i = 0;
-	XSetWindowAttributes at;
-	at.background_pixel = color(dpy, back).pixel;
-	at.border_pixel = color(dpy, border).pixel;
-	
-	for(i = 0; i < simb_num; i++){
-		if( w_arr[i] != skip){
-			XSetWindowBorderWidth(dpy, w_arr[i], 3);
-			XChangeWindowAttributes(dpy, w_arr[i], CWBorderPixel, &at);
-		}
-	}
-}
-void send_message(Display *dpy, Window w_hide, Window w_des){
-	XEvent ev;
-		 
-	memset(&ev, 0, sizeof (ev));
-					 
-	ev.xclient.type = ClientMessage;
-	ev.xclient.window = w_des;
-	ev.xclient.message_type = XInternAtom(dpy , "WM_PROTOCOLS", True);
-	ev.xclient.format = 32;
-	ev.xclient.data.l[0] = XInternAtom(dpy , "WM_DELETE_WINDOW", False);
-	ev.xclient.data.l[1] = CurrentTime;
-	if(w_hide != w_des)
-		ev.xclient.data.l[2] = (long int)w_hide;
-	XSendEvent(dpy, w_des, False, NoEventMask, &ev);
-	XFlush(dpy);
-}
-int main(void)
-{
 	XSetErrorHandler(handler);
 
 	XWindowAttributes attr;
@@ -99,9 +28,7 @@ int main(void)
 				ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
 				GrabModeAsync, GrabModeAsync,  None, None);
 
-	char pid[10];
-	sprintf(pid, "%d",getpid());
-	run_apps(pid);
+	run_apps();
 	
 	Window win_xx = find(dpy, "xx");
 	Window win_clock = find(dpy, "clock");
@@ -135,6 +62,7 @@ int main(void)
 						send_message(dpy, ev.xbutton.subwindow, ev.xbutton.subwindow);
 					}else if(ev.xbutton.x_root < attr.x + attr.width / 2  && 
 						ev.xbutton.x_root > attr.x && strcmp(name, "lon") != 0){
+						XIconifyWindow(dpy, ev.xbutton.subwindow, DefaultScreen(dpy));
 						send_message(dpy, ev.xbutton.subwindow, win_mini); 
 					}
 			}

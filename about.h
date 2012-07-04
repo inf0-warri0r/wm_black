@@ -6,7 +6,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-void drew_grid(Display *dpy, Window win, GC gc){
+void drew_massage(Display *dpy, Window win, GC gc){
 	int i, j;
 
 	char *p[14] = {
@@ -56,19 +56,14 @@ int about()
 	
 	XSetForeground(dpy, gc, col.pixel);
 	
-	int co;
-	char **fn = XListFonts(dpy, 
-		"-misc-fixed-bold-r-normal--14-130-75-75-c-70-iso106*",
-		1, &co);
-
-	XFontStruct *font = XLoadQueryFont(dpy, fn[0]);
+	XFontStruct *font = get_font(dpy);
 
     	XSelectInput(dpy,
 		win, 
 		ExposureMask);
 
 	XGetWindowAttributes(dpy, win, &attr);
-	drew_grid(dpy, win, gc);
+	drew_massage(dpy, win, gc);
 	XFlush(dpy);
 	int loop = 1;
 	XEvent ev;
@@ -80,7 +75,7 @@ int about()
 			case Expose:
 			{
 				XGetWindowAttributes(dpy, win, &attr);
-				drew_grid(dpy, win, gc);
+				drew_massage(dpy, win, gc);
 				XFlush(dpy);
 			}
 			break;

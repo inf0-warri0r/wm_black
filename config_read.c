@@ -1,8 +1,5 @@
-typedef struct app{
-	char name[40];
-	char command[40];
-	struct app *next;
-}app;			
+
+#include "config_read.h"
 
 app *list = NULL;
 
