@@ -7,7 +7,7 @@ wm_black is a simple window manager for linux created using Xlib libraries. it a
 installing
 -----------
 
-you need X11 libraries to compile run 
+you need X11 libraries to compile. run ,
 
 sudo apt-get install libx11-dev
 
