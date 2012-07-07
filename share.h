@@ -1,3 +1,9 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
+
 #ifndef __SHA__
 #define __SHA__
 
@@ -13,7 +19,7 @@
 
 int handler(Display *d, XErrorEvent *ev);
 char *full_path(char *file);
-Window* get_all_windows(Display *dpy);
+Window *get_all_windows(Display *dpy);
 Window find(Display *dpy, char *name);
 int get_simb_num();
 

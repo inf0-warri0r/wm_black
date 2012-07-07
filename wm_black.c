@@ -1,3 +1,8 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
 
 #include "grapics.h"
 #include "wm_black.h"
@@ -19,7 +24,7 @@ void run_apps(){
 	sleep(2);
 }
 void set_borders(Display *dpy, Window skip, char *back, char *border){
-	Window* w_arr = get_all_windows(dpy);
+	Window* w_arr = (Window *)get_all_windows(dpy);
 	int i = 0;
 	XSetWindowAttributes at;
 	at.background_pixel = color(dpy, back).pixel;

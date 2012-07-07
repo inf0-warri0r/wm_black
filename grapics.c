@@ -1,3 +1,8 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
 
 #include "grapics.h"
 
@@ -9,11 +14,11 @@ XColor color(Display *dpy, char *color){
                                       			AllocNone);
 	XColor system_color;
 	XColor exact_color;
-	Status rc = XAllocNamedColor(dpy,
-							screen_colormap,
-							color,
-							&system_color,
-							&exact_color);
+	XAllocNamedColor(dpy,
+				screen_colormap,
+				color,
+				&system_color,
+				&exact_color);
 	return system_color;
 }
 pixmap_ *load_bitmap(Display *dpy, char *name){
@@ -22,7 +27,7 @@ pixmap_ *load_bitmap(Display *dpy, char *name){
 	int hotspot_x, hotspot_y;
 	Window root_win = DefaultRootWindow(dpy); 
 
-	char *path = full_path(name); 
+	char *path = (char *)full_path(name); 
                                               
 	int rc = XReadBitmapFile(dpy, root_win, path, &bitmap_width, &bitmap_height,
 		                 &bitmap,

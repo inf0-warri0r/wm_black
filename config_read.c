@@ -1,3 +1,8 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
 
 #include "config_read.h"
 
@@ -32,7 +37,7 @@ int splitter(char *com, char **args){
 }
 int read_file(char *file){
 
-	char *path = full_path(file); 
+	char *path = (char *)full_path(file); 
                                         
 	FILE *f = fopen(path, "r");
 	if(f == NULL) return 0;

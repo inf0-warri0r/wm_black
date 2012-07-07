@@ -1,3 +1,9 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
+
 #include "config_read.h"
 #include "grapics.h"
 #include "base_win.h"

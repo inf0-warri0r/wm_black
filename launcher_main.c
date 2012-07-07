@@ -1,3 +1,9 @@
+/*
+*Author :Tharindra Galahena
+*Project:wm_black - a simple window manager in linux 
+*Date   :07/07/2012
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

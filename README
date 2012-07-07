@@ -7,13 +7,22 @@ wm_black is a simple window manager for linux created using Xlib libraries. it a
 installing
 -----------
 
+you need X11 libraries to compile run 
+
+sudo apt-get install libx11-dev
+
+to install it. the run "install.sh" shell script to compile and copy binary files.
+then go to super user mode with "sudo su" command and run "create_session.sh" to create 
+"wm_black.desktop" file in "/usr/share/xsessions" folder.
+
+then logout and login using wm_black as the session.  
   
 usage
 ------
 
 use Alt + left click to select and move a window.
 use Alt + right click and drag to resize window.
-use Alt + middle button to minimizing or close window.(click on right half of the window to close window. click on the left helf of the window to minimize.)
+use Alt + middle button to minimizing or close window.(click on right half of the window to close window. click on the left half of the window to minimize.)
 
 minimized window titles will be shown on the desktop. click on them to maximize them.
 
